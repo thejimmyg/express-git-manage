@@ -1,0 +1,11 @@
+{{>top}}        
+      <div class="p-3 flex-grow-1">
+        <h1>Files for <tt>{{repo}}</tt> commit <tt>{{commit}}</tt> on branch <tt>{{branch}}</tt></h1>
+
+        <ul>
+        {{#files}}
+          <li><a href="{{link}}">{{name}}</a></li>
+        {{/files}}
+        </ul>
+      </div>
+{{>bottom}}

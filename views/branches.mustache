@@ -1,0 +1,11 @@
+{{>top}}        
+      <div class="p-3 flex-grow-1">
+        <h1>Branches for <tt>{{repo}}</tt></h1>
+
+        <ul>
+        {{#branches}}
+          <li><a href="{{link}}">{{name}}</a></li>
+        {{/branches}}
+        </ul>
+      </div>
+{{>bottom}}

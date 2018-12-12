@@ -1,0 +1,9 @@
+.DS_Store
+.git
+.gitignore
+.sw[op]
+domain
+repo
+node_modules
+views-gitmanage
+public-gitmanage

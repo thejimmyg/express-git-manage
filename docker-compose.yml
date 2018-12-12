@@ -1,0 +1,65 @@
+version: "3"
+services:
+  gateway:
+    restart: unless-stopped
+    image: thejimmyg/gateway-lite:0.2.5
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./domain:/app/domain:rw
+      - ./letsencrypt:/etc/letsencrypt:rw
+    environment:
+      DEBUG: gateway-lite
+    command: >
+      --https-port 443
+      --port 80
+      --cert domain/www.example.localhost/sni/cert.pem
+      --key domain/www.example.localhost/sni/key.pem
+      --proxy '
+        www.example.localhost:
+          - ["/user", "signin:8000/user", {"limit": "100mb"}]
+          - ["/", "gitmanage:80/", {"limit": "100mb"}]
+      '
+      --domain domain
+    links:
+      - gitmanage:gitmanage
+      - signin:signin
+  signin:
+    restart: unless-stopped
+    image: thejimmyg/express-mustache-jwt-signin:0.3.2
+    expose:
+      - 8000
+    environment:
+      SECRET: a3707b31-0319-4b16-90b9-75aeff33752d
+      DEBUG: "express-mustache-jwt-signin,express-mustache-overlays"
+      PORT: 8000
+      SCRIPT_NAME: /user
+      DASHBOARD_URL: /
+      # Add this if you want to share the sign in templates with gitmanage
+      MUSTACHE_DIRS: /app/views-gitmanage
+    volumes:
+      - ./users:/app/yaml:ro
+      # Add this if you want to share the sign in templates with gitmanage
+      - ./views-gitmanage:/app/views-gitmanage:ro
+  gitmanage:
+    restart: unless-stopped
+    build: ./
+    expose:
+      - 80
+    environment:
+      SECRET: a3707b31-0319-4b16-90b9-75aeff33752d
+      DEBUG: "express-git-manage,express-mustache-jwt-signin,express-mustache-overlays"
+      DIR: /git/repo
+      SCRIPT_NAME: ""
+      PORT: 80
+      SIGN_IN_URL: /user/signin
+      MUSTACHE_DIRS: /app/views-gitmanage
+      PUBLIC_FILES_DIRS: /app/public-gitmanage
+    volumes:
+      - ./repo:/git/repo:rw
+      - ./views-gitmanage:/app/views-gitmanage:ro
+      - ./public-gitmanage:/app/public-gitmanage:ro
+      # If you are working on multiple node modules that don't require compiling, you can always mount them in for debugging:
+      # - /Users/james/Desktop/jimmyg/git/express-mustache-overlays:/app/node_modules/express-mustache-overlays:ro
+      # - /Users/james/Desktop/jimmyg/git/express-mustache-jwt-signin:/app/node_modules/express-mustache-jwt-signin:ro

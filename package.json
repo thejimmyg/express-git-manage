@@ -1,0 +1,34 @@
+{
+  "name": "express-git-manage",
+  "version": "0.1.0",
+  "description": "Manage git repos created by docker-git",
+  "scripts": {
+    "docker:build": "docker build . -t thejimmyg/express-git-manage:0.1.0",
+    "docker:push": "docker push thejimmyg/express-git-manage:0.1.0",
+    "docker:build:test": "docker build . -t thejimmyg/express-git-manage:test",
+    "docker:push:test": "docker push thejimmyg/express-git-manage:test",
+    "docker:run:local": "docker-compose stop && docker-compose pull && docker-compose up --build -d",
+    "docker:stop:local": "docker-compose stop",
+    "docker:logs:local": "docker-compose logs --tail='all' -f",
+    "start": "node bin/server.js",
+    "fix": "standard --fix index.js bin/*.js lib/*.js"
+  },
+  "author": "JimmyG",
+  "license": "MIT",
+  "dependencies": {
+    "debug": "^4.1.0",
+    "express": "^4.16.4",
+    "express-mustache-jwt-signin": "^0.3.2",
+    "express-mustache-overlays": "^0.3.3",
+    "mime-types": "^2.1.21",
+    "nodegit": "^0.23.0",
+    "shelljs": "^0.8.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:thejimmyg/express-git-manage.git"
+  },
+  "devDependencies": {
+    "standard": "^12.0.1"
+  }
+}

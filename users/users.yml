@@ -1,0 +1,4 @@
+hello:
+  password: world
+  claims:
+    admin: true
