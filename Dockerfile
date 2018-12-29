@@ -15,6 +15,8 @@ COPY package-lock.json /app/
 RUN npm install --only=prod
 
 FROM builder1
+RUN apk --no-cache add sudo
+RUN adduser -h /home/git -s /usr/bin/git-shell -S git
 COPY --from=builder /app /app
 COPY bin/ /app/bin/
 # You can mount your real `/app/editable` volume when running docker
@@ -22,9 +24,11 @@ RUN mkdir -p /app/editable/
 COPY views/ /app/views/
 COPY public/ /app/public/
 WORKDIR /app
-EXPOSE 80
+EXPOSE 8000
+ENV PORT=8000
 ENV NODE_PATH=/app/node_modules
 ENV NODE_ENV=production
 ENV DIR=/app/editable/
 ENV PATH="${PATH}:/app/node_modules/.bin"
-CMD ["node", "bin/server.js"]
+ENV HOME=/home/git
+CMD ["/usr/bin/sudo", "-E", "-u", "git", "node", "bin/server.js"]

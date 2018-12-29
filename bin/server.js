@@ -21,9 +21,10 @@ if (scriptName.endsWith('/')) {
 }
 const reposDir = process.env.DIR
 if (!reposDir) {
-  throw new Error('No DIR environment variable set to specify the path of the editable files.')
+  throw new Error('No DIR environment variable set to specify the path of the repo.')
 }
 const secret = process.env.SECRET
+const gitDomain = process.env.GIT_DOMAIN || 'git.example.com'
 const signInURL = process.env.SIGN_IN_URL || '/user/signin'
 const signOutURL = process.env.SIGN_OUT_URL || '/user/signout'
 const disableAuth = ((process.env.DISABLE_AUTH || 'false').toLowerCase() === 'true')
@@ -265,7 +266,8 @@ const main = async () => {
         res.render('content', { title: createTitle, content: '<h1>Error</h1><p>Could not create repo.</p>' })
         return
       }
-      res.render('content', { title: createTitle, content: '<h1>Success</h1><p>Repo created. <a href="' + mustache.escape(scriptName + '/repo/' + name) + '">List branches.</a></p>' })
+      res.render('created', { title: createTitle, repo: name, gitDomain})
+      // , content: '<h1>Success</h1><p>Repo created. <a href="' + mustache.escape(scriptName + '/repo/' + name) + '">List branches.</a></p>' })
     } catch (e) {
       debug(e)
       next(e)

@@ -3,7 +3,6 @@
 **CAUTION: Under active development, not suitable for production use for people
 outside the development team yet.**
 
-
 ## Config
 
 You configure the container by setting environment variables:
@@ -29,7 +28,7 @@ git clone https://github.com/thejimmyg/express-git-manage.git
 cd express-git-manage
 ```
 
-**Tip: You can also use the published docker image at https://cloud.docker.com/u/thejimmyg/repository/docker/thejimmyg/express-git-manage if you change the `docker-compose.yml` file to use `image: thejimmyg/express-git-manage:0.1.4` instead of building from source**
+**Tip: You can also use the published docker image at https://cloud.docker.com/u/thejimmyg/repository/docker/thejimmyg/express-git-manage if you change the `docker-compose.yml` file to use `image: thejimmyg/express-git-manage:0.1.0` instead of building from source**
 
 OK, let's begin.
 
@@ -69,6 +68,9 @@ Make an `repo` directory where files will be uploaded to:
 
 ```
 mkdir -p repo
+# Allow other containers to write to it
+chmod a+r repo
+chmod a+w repo
 ```
 
 Create an empty git repo named `test` inside the `repo` directory for the server to find:
@@ -105,7 +107,7 @@ npm run docker:stop:local
 
 ```
 npm install
-DISABLE_AUTH=true SIGN_IN_URL=/user/signin SCRIPT_NAME="" DEBUG=express-git-manage,express-mustache-overlays,express-mustache-jwt-signin DIR=repo PORT=8000 SECRET='reallysecret' npm start
+GIT_DOMAIN=git.example.com:8022 DISABLE_AUTH=true SIGN_IN_URL=/user/signin SCRIPT_NAME="" DEBUG=express-git-manage,express-mustache-overlays,express-mustache-jwt-signin DIR=repo PORT=8000 SECRET='reallysecret' npm start
 ```
 
 Visit http://localhost:8000.

@@ -19,7 +19,7 @@ services:
       --proxy '
         www.example.localhost:
           - ["/user", "signin:8000/user", {"limit": "100mb"}]
-          - ["/", "gitmanage:80/", {"limit": "100mb"}]
+          - ["/", "gitmanage:8000/", {"limit": "100mb"}]
       '
       --domain domain
     links:
@@ -46,13 +46,13 @@ services:
     restart: unless-stopped
     build: ./
     expose:
-      - 80
+      - 8000
     environment:
       SECRET: a3707b31-0319-4b16-90b9-75aeff33752d
       DEBUG: "express-git-manage,express-mustache-jwt-signin,express-mustache-overlays"
       DIR: /git/repo
       SCRIPT_NAME: ""
-      PORT: 80
+      PORT: 8000
       SIGN_IN_URL: /user/signin
       MUSTACHE_DIRS: /app/views-gitmanage
       PUBLIC_FILES_DIRS: /app/public-gitmanage
