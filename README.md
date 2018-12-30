@@ -138,6 +138,11 @@ npm run fix
 
 ## Changelog
 
-### 0.1.0 2018-12-12
+### 0.1.1 2018-12-30
+
+* Support binding on non-privileged ports
+* Show the create page when there are no branches yet
+
+### 0.1.0 2018-12-29
 
 * Initial release

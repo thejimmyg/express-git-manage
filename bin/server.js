@@ -8,7 +8,6 @@ const { prepareMustacheOverlays, setupErrorHandlers } = require('express-mustach
 const shell = require('shelljs')
 const { setupMiddleware } = require('express-mustache-jwt-signin')
 const { promisify } = require('util')
-const mustache = require('mustache')
 const git = require('nodegit')
 const mime = require('mime-types')
 
@@ -113,6 +112,10 @@ const main = async () => {
       const gitrepo = await git.Repository.open(path.join(reposDir, repo))
       const arrayString = await gitrepo.getReferenceNames(git.Reference.TYPE.LISTALL)
       debug(arrayString)
+      if (!arrayString.length) {
+        res.render('created', { title: createTitle, repo, gitDomain })
+        return
+      }
       const branches = []
       for (let ref of arrayString) {
         debug(ref)
@@ -174,13 +177,13 @@ const main = async () => {
         // files.push({name: 'ada', link: scriptName + '/repo/' + repo+ '/branch/' + ref.slice(11, ref.length)})
       })
 
-      walker.on('end', function(trees) {
+      walker.on('end', function (trees) {
         res.render('files', { repo, branch, commit, files, title: 'Files' })
       })
 
-      walker.on('error', function(error) {
+      walker.on('error', function (error) {
         debug(error)
-      });
+      })
       walker.start()
     } catch (e) {
       debug(e)
@@ -256,7 +259,7 @@ const main = async () => {
       }
       debug(repoPath)
       try {
-        const gitrepo = await git.Repository.init(repoPath, 1)
+        await git.Repository.init(repoPath, 1)
         // shell.exec('git init --bare "' + repoPath + '"')
         // if (shell.error()) {
         //   throw new Error(`Could not create git repo for ${repoPath}.`)
@@ -266,7 +269,7 @@ const main = async () => {
         res.render('content', { title: createTitle, content: '<h1>Error</h1><p>Could not create repo.</p>' })
         return
       }
-      res.render('created', { title: createTitle, repo: name, gitDomain})
+      res.render('created', { title: createTitle, repo: name, gitDomain })
       // , content: '<h1>Success</h1><p>Repo created. <a href="' + mustache.escape(scriptName + '/repo/' + name) + '">List branches.</a></p>' })
     } catch (e) {
       debug(e)

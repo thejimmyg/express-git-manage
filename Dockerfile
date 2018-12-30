@@ -15,7 +15,8 @@ COPY package-lock.json /app/
 RUN npm install --only=prod
 
 FROM builder1
-RUN apk --no-cache add sudo
+RUN apk --no-cache add sudo libcap
+RUN setcap cap_net_bind_service=+ep /usr/local/bin/node
 RUN adduser -h /home/git -s /usr/bin/git-shell -S git
 COPY --from=builder /app /app
 COPY bin/ /app/bin/
@@ -24,8 +25,8 @@ RUN mkdir -p /app/editable/
 COPY views/ /app/views/
 COPY public/ /app/public/
 WORKDIR /app
-EXPOSE 8000
-ENV PORT=8000
+EXPOSE 80
+ENV PORT=80
 ENV NODE_PATH=/app/node_modules
 ENV NODE_ENV=production
 ENV DIR=/app/editable/
