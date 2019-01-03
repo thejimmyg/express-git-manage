@@ -7,7 +7,10 @@ outside the development team yet.**
 
 You configure the container by setting environment variables:
 
-* `DIR` - The directory containing the repos
+* `DIR` - The directory containing the git repositories
+* `KEYS_DIR` - The directory containing the `authorized_keys` file
+* `GIT_DOMAIN` - The SSH domain (optionally including port) to be displayed to users for cloning the repo over SSH e.g. `git@example.com:8022`
+* `GIT_HTTP_URL` - The HTTP/HTTPS base URL (optionally including port) to be displayed to users for cloning the repo over HTTP/HTTPS e.g. `https://git.example.com/git`. Should not end with a `/`. If not set, this app will attempt to choose a sensible default.
 * `MUSTACHE_DIRS` - A `:` separated list of paths the system should look for mustache templates before using its default ones.
 * `DISABLE_AUTH` - Defaults to `false` but can be `true` to make file uploading and downloading work without requiring sign in. Only recommended for development.
 * `SCRIPT_NAME` - The base URL at which the app is hosted. Defaults to `""` and must not end with `/`. Usually this is set to something like `/upload`
@@ -73,6 +76,19 @@ chmod a+r repo
 chmod a+w repo
 ```
 
+Make a `keys` directory and an empty `authorized_keys` file:
+
+```
+mkdir -p keys
+touch keys/authorized_keys
+```
+
+Create a `hostkeys` directory:
+
+```
+mkdir -p hostkeys
+```
+
 Create an empty git repo named `test` inside the `repo` directory for the server to find:
 
 ```
@@ -101,13 +117,14 @@ When you are finished you can stop the containers with the command below, otherw
 npm run docker:stop:local
 ```
 
-
-
 ## Example
+
+You will need git installed locally. It is used by the post-update hook in the
+repos that this interface creates to allow git repos to be shared over HTTP(S).
 
 ```
 npm install
-GIT_DOMAIN=git.example.com:8022 DISABLE_AUTH=true SIGN_IN_URL=/user/signin SCRIPT_NAME="" DEBUG=express-git-manage,express-mustache-overlays,express-mustache-jwt-signin DIR=repo PORT=8000 SECRET='reallysecret' npm start
+GIT_DOMAIN=git.example.com:8022 DISABLE_AUTH=true DISABLED_AUTH_USER='{"admin": true, "username": "disableduser"}' SIGN_IN_URL=/user/signin SCRIPT_NAME="" DEBUG=express-git-manage,express-mustache-overlays,express-mustache-jwt-signin DIR=repo KEYS_DIR=keys PORT=8000 SECRET='reallysecret' npm start
 ```
 
 Visit http://localhost:8000.
@@ -137,6 +154,13 @@ npm run fix
 
 
 ## Changelog
+
+### 0.1.2 2019-01-03
+
+* Handling SIGTERM
+* Support `DISABLED_AUTH_USER`
+* Ability to edit SSH keys file
+* Publish the repos publicaly over HTTPS too
 
 ### 0.1.1 2018-12-30
 

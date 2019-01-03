@@ -15,7 +15,7 @@ COPY package-lock.json /app/
 RUN npm install --only=prod
 
 FROM builder1
-RUN apk --no-cache add sudo libcap
+RUN apk --no-cache add sudo libcap git
 RUN setcap cap_net_bind_service=+ep /usr/local/bin/node
 RUN adduser -h /home/git -s /usr/bin/git-shell -S git
 COPY --from=builder /app /app

@@ -42,6 +42,15 @@ services:
       - ./users:/app/yaml:ro
       # Add this if you want to share the sign in templates with gitmanage
       - ./views-gitmanage:/app/views-gitmanage:ro
+  git:
+    restart: unless-stopped
+    image: thejimmyg/docker-git:0.1.2
+    ports:
+      - "8022:22"
+    volumes:
+      - ./hostkeys:/git/hostkeys/etc/ssh:rw
+      - ./keys:/git/keys:rw
+      - ./repo:/git/repo:rw
   gitmanage:
     restart: unless-stopped
     build: ./
@@ -51,6 +60,7 @@ services:
       SECRET: a3707b31-0319-4b16-90b9-75aeff33752d
       DEBUG: "express-git-manage,express-mustache-jwt-signin,express-mustache-overlays"
       DIR: /git/repo
+      KEYS_DIR: /git/keys
       SCRIPT_NAME: ""
       PORT: 80
       SIGN_IN_URL: /user/signin
@@ -58,6 +68,7 @@ services:
       PUBLIC_FILES_DIRS: /app/public-gitmanage
     volumes:
       - ./repo:/git/repo:rw
+      - ./keys:/git/keys:rw
       - ./views-gitmanage:/app/views-gitmanage:ro
       - ./public-gitmanage:/app/public-gitmanage:ro
       # If you are working on multiple node modules that don't require compiling, you can always mount them in for debugging:

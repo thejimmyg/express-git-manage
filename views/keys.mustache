@@ -1,0 +1,18 @@
+{{>top}}
+      <div class="p-3 flex-grow-1">
+        <h1>Manage Keys</h1>
+        {{#editError}}
+        <div class="alert alert-danger">{{editError}}</div>
+        {{/editError}}
+        {{#editSuccess}}
+        <div class="alert alert-success">{{editSuccess}}</div>
+        {{/editSuccess}}
+        <form method="POST" action="{{action}}">
+          <div class="form-group">
+            <label for="content">Content:</label>
+            <textarea rows="10" class="form-control" name="content">{{content}}</textarea>
+          </div>
+          <button class="btn btn-primary" type="submit">Save</button>
+        </form>
+      </div>
+{{>bottom}}

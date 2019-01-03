@@ -4,6 +4,7 @@
 .sw[op]
 domain
 repo
+keys
 node_modules
 views-gitmanage
 public-gitmanage

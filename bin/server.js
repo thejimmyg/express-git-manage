@@ -6,12 +6,14 @@ const fs = require('fs')
 const path = require('path')
 const { prepareMustacheOverlays, setupErrorHandlers } = require('express-mustache-overlays')
 const shell = require('shelljs')
-const { setupMiddleware } = require('express-mustache-jwt-signin')
+const { makeStaticWithUser, setupMiddleware } = require('express-mustache-jwt-signin')
 const { promisify } = require('util')
 const git = require('nodegit')
 const mime = require('mime-types')
 
 const lstatAsync = promisify(fs.lstat)
+const writeFileAsync = promisify(fs.writeFile)
+const readFileAsync = promisify(fs.readFile)
 
 const port = process.env.PORT || 80
 const scriptName = process.env.SCRIPT_NAME || ''
@@ -20,10 +22,15 @@ if (scriptName.endsWith('/')) {
 }
 const reposDir = process.env.DIR
 if (!reposDir) {
-  throw new Error('No DIR environment variable set to specify the path of the repo.')
+  throw new Error('No DIR environment variable set to specify the path of the repos directory.')
+}
+const keysDir = process.env.KEYS_DIR
+if (!keysDir) {
+  throw new Error('No KEYS_DIR environment variable set to specify the path of the keys directory.')
 }
 const secret = process.env.SECRET
 const gitDomain = process.env.GIT_DOMAIN || 'git.example.com'
+const overrideGitHttpUrl = process.env.GIT_HTTP_URL
 const signInURL = process.env.SIGN_IN_URL || '/user/signin'
 const signOutURL = process.env.SIGN_OUT_URL || '/user/signout'
 const disableAuth = ((process.env.DISABLE_AUTH || 'false').toLowerCase() === 'true')
@@ -37,6 +44,7 @@ if (!disableAuth) {
 } else {
   debug('Disabled auth')
 }
+const disabledAuthUser = process.env.DISABLED_AUTH_USER
 const mustacheDirs = process.env.MUSTACHE_DIRS ? process.env.MUSTACHE_DIRS.split(':') : []
 const publicFilesDirs = process.env.PUBLIC_FILES_DIRS ? process.env.PUBLIC_FILES_DIRS.split(':') : []
 const publicURLPath = process.env.PUBLIC_URL_PATH || scriptName + '/public'
@@ -55,21 +63,13 @@ const main = async () => {
     next()
   })
 
-  let { signedIn, withUser, hasClaims } = await setupMiddleware(app, secret, { overlays, signOutURL, signInURL })
+  const authMiddleware = await setupMiddleware(app, secret, { overlays, signOutURL, signInURL })
+  const { signedIn, hasClaims } = authMiddleware
+  let { withUser } = authMiddleware
   if (disableAuth) {
-    signedIn = function (req, res, next) {
-      debug(`signedIn disabled by DISBABLE_AUTH='true'`)
-      next()
-    }
-    hasClaims = function () {
-      return function (req, res, next) {
-        debug(`hasClaims disabled by DISBABLE_AUTH='true'`)
-        next()
-      }
-    }
-  } else {
-    app.use(withUser)
+    withUser = makeStaticWithUser(JSON.parse(disabledAuthUser || 'null'))
   }
+  app.use(withUser)
 
   overlays.overlayMustacheDir(path.join(__dirname, '..', 'views'))
   overlays.overlayPublicFilesDir(path.join(__dirname, '..', 'public'))
@@ -106,14 +106,18 @@ const main = async () => {
     }
   })
 
+  app.use(scriptName + '/git', express.static(reposDir, {}))
+
   app.get(scriptName + '/repo/:repo', signedIn, async (req, res, next) => {
     try {
+      debug(req.protocol, req.get('x-forwarded-proto'), req.get('x-forwarded-host'), 'host', req.get('host'))
+      const gitHttpUrl = overrideGitHttpUrl || ((req.get('x-forwarded-proto') || req.protocol) + '://' + (req.get('x-forwarded-host') || req.get('host')) + scriptName + '/git')
       const repo = req.params.repo
       const gitrepo = await git.Repository.open(path.join(reposDir, repo))
       const arrayString = await gitrepo.getReferenceNames(git.Reference.TYPE.LISTALL)
       debug(arrayString)
       if (!arrayString.length) {
-        res.render('created', { title: createTitle, repo, gitDomain })
+        res.render('created', { title: createTitle, repo, gitDomain, gitHttpUrl })
         return
       }
       const branches = []
@@ -121,7 +125,7 @@ const main = async () => {
         debug(ref)
         branches.push({ name: ref, link: scriptName + '/repo/' + repo + '/branch/' + ref.slice(11, ref.length) + '/' })
       }
-      res.render('branches', { repo, branches, title: 'Branches' })
+      res.render('branches', { repo, branches, title: 'Branches', gitDomain, gitHttpUrl })
     } catch (e) {
       debug(e)
       next(e)
@@ -238,14 +242,39 @@ const main = async () => {
     }
   })
 
-  // app.all(scriptName + '/throw', signedIn, hasClaims(claims => claims.admin), async (req, res, next) => {
-  //   try {
-  //     throw new Error('test')
-  //   } catch (e) {
-  //     next(e)
-  //     return
-  //   }
-  // })
+  app.all(scriptName + '/keys', signedIn, hasClaims(claims => claims.admin), async (req, res, next) => {
+    try {
+      debug('Manage Keys handler')
+      const filePath = path.normalize(path.join(keysDir, 'authorized_keys'))
+      debug(filePath)
+      let editError = ''
+      let editSuccess = ''
+      const action = req.originalUrl
+      let content = ''
+      if (req.method === 'POST') {
+        content = req.body.content
+        let error = false
+        try {
+          await writeFileAsync(filePath, content, { encoding: 'UTF-8' })
+        } catch (e) {
+          editError = 'Could not save the file'
+          debug(e.toString())
+          error = true
+        }
+        if (error) {
+          res.render('keys', { title: 'Error', content, editError, action })
+          return
+        } else {
+          editSuccess = 'Keys saved.'
+        }
+      } else if (req.method === 'GET' || editError.length === 0) {
+        content = await readFileAsync(filePath, { encoding: 'UTF-8' })
+      }
+      res.render('keys', { title: 'Manage Keys', action, editSuccess, content })
+    } catch (e) {
+      next(e)
+    }
+  })
 
   app.post(scriptName + '/create', signedIn, hasClaims(claims => claims.admin), async (req, res, next) => {
     try {
@@ -264,13 +293,30 @@ const main = async () => {
         // if (shell.error()) {
         //   throw new Error(`Could not create git repo for ${repoPath}.`)
         // }
+
+        const content = `#!/bin/sh
+
+exec git update-server-info`
+        const hookPath = path.join(repoPath, 'hooks', 'post-update')
+        await writeFileAsync(hookPath, content, { encoding: 'UTF-8' })
+        shell.chmod('+x', hookPath)
+        if (shell.error()) {
+          throw new Error(`Could not make the git hook ${hookPath} executable.`)
+        }
+        const cmd = `/bin/sh "hooks/post-update"`
+        debug(cmd, repoPath)
+        shell.exec(cmd, { cwd: repoPath })
+        if (shell.error()) {
+          throw new Error(`Could not run the ${hookPath} script to initialise the repo at ${repoPath} for HTTP access.`)
+        }
       } catch (e) {
         debug(e.toString())
         res.render('content', { title: createTitle, content: '<h1>Error</h1><p>Could not create repo.</p>' })
         return
       }
-      res.render('created', { title: createTitle, repo: name, gitDomain })
-      // , content: '<h1>Success</h1><p>Repo created. <a href="' + mustache.escape(scriptName + '/repo/' + name) + '">List branches.</a></p>' })
+      debug(req.protocol, req.get('x-forwarded-proto'), req.get('x-forwarded-host'), 'host', req.get('host'))
+      const gitHttpUrl = overrideGitHttpUrl || ((req.get('x-forwarded-proto') || req.protocol) + '://' + (req.get('x-forwarded-host') || req.get('host')) + scriptName + '/git')
+      res.render('created', { title: createTitle, repo: name, gitDomain, gitHttpUrl })
     } catch (e) {
       debug(e)
       next(e)
@@ -286,8 +332,12 @@ const main = async () => {
 
 main()
 
-// Better handling of SIGNIN for docker
+// Better handling of SIGINT for docker
 process.on('SIGINT', function () {
-  console.log('Exiting ...')
+  console.log('Received SIGINT. Exiting ...')
+  process.exit()
+})
+process.on('SIGTERM', function () {
+  console.log('Received SIGTERM. Exiting ...')
   process.exit()
 })

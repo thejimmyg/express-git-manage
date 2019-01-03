@@ -3,21 +3,27 @@
         <h1>Git Manage</h1>
 
         <h2>New Repo</h2>
-
         <form action="{{scriptName}}/create" method="POST">
           <div class="form-group">
             <label for="name">New repo name:</label>
-            <input class="form-control" type="text" placeholder="e.g. demo.git" name="name">
+            <input class="form-control" type="text" placeholder="e.g. myrepo" name="name">
           </div>
           <button class="btn btn-primary" type="submit">Create</button>
         </form>
 
         <h2>Existing Repos</h2>
+        {{^repos.length}}
+        <p>Create a first repo to get started.</p>
+        {{/repos.length}}
+        {{#repos.length}}
         <ul>
           {{#repos}}
           <li><a href="{{url}}">{{name}}<a></li>
           {{/repos}}
         </ul>
+        {{/repos.length}}
 
+        <h2>Manage Keys</h2>
+        <p><a href="{{scriptName}}/keys">Manage Keys</a></p>
       </div>
 {{>bottom}}
